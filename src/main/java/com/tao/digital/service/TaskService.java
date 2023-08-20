@@ -1,11 +1,12 @@
 package com.tao.digital.service;
 
-import com.tao.digital.database.model.Assignment;
-import com.tao.digital.database.model.Task;
-import com.tao.digital.database.model.User;
-import com.tao.digital.database.repository.AssignmentRepository;
-import com.tao.digital.database.repository.TaskRepository;
-import com.tao.digital.database.repository.UserRepository;
+import com.tao.digital.enums.TaskStatus;
+import com.tao.digital.model.entity.Task;
+import com.tao.digital.model.entity.User;
+import com.tao.digital.model.request.TaskRequest;
+import com.tao.digital.model.request.TaskStatistics;
+import com.tao.digital.repository.TaskRepository;
+import com.tao.digital.repository.UserRepository;
 import com.tao.digital.exception.TaskNotFoundException;
 import com.tao.digital.exception.UserNotFoundException;
 import jakarta.transaction.Transactional;
@@ -22,18 +23,19 @@ public class TaskService {
     TaskRepository taskRepository;
 
     @Autowired
-    AssignmentRepository assignmentRepository;
-
-    @Autowired
     UserRepository userRepository;
 
     @Transactional
-    public Task createTask(Task task){
+    public Task createTask(TaskRequest taskRequest){
+        Task task = new Task();
+        task.setTitle(taskRequest.getTitle());
+        task.setDescription(taskRequest.getDescription());
+        task.setDueDate(taskRequest.getDueDate());
         return taskRepository.save(task);
     }
 
     @Transactional
-    public Task updateTask(Long taskId, Task updatedTask) throws TaskNotFoundException {
+    public Task updateTask(Long taskId, TaskRequest updatedTask) {
 
        Task task =  taskRepository.findById(taskId).orElseThrow( () ->
                new TaskNotFoundException("Task not found with id: " + taskId));
@@ -44,13 +46,13 @@ public class TaskService {
         if (updatedTask.getDescription() != null) {
             task.setDescription(updatedTask.getDescription());
         }
-        if (updatedTask.getStartDate()!= null) {
+       /* if (updatedTask.getStartDate()!= null) {
             task.setStartDate(updatedTask.getStartDate());
-        }
+        }*/
         if (updatedTask.getDueDate() != null) {
             task.setDueDate(updatedTask.getDueDate());
         }
-        if (updatedTask.getStatus().equals("Completed")) {
+        if (updatedTask.getStatus().equals(TaskStatus.COMPLETED.name())) {
             task.setStatus(updatedTask.getStatus());
             task.setCompletedDate(LocalDate.now());
         }
@@ -69,17 +71,64 @@ public class TaskService {
     }
 
     @Transactional
-    public void assignTask(Long taskId, Long userId) throws TaskNotFoundException, UserNotFoundException {
+    public void assignTask(Long taskId, Long userId) {
+        User user;
         Task task = taskRepository.findById(taskId)
                 .orElseThrow( ()-> new TaskNotFoundException("Task with ID " + taskId + " not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow( () -> new UserNotFoundException("User with ID " + userId + " not found"));
+        try {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User with ID " + userId + " not found"));
+        }catch (UserNotFoundException e){
+            user = new User();
+            user.setUserId(userId);
+        }
+        task.setAssignedTo(user);
 
-        Assignment assignment = new Assignment();
-        assignment.setTask(task);
-        assignment.setUser(user);
-        assignmentRepository.save(assignment);
+        taskRepository.save(task);
+    }
 
+    @Transactional
+    public Task setTaskProgress(Long taskId, int progressPercentage) {
+        Task task = taskRepository.findById(taskId).orElse(null);
+
+        if (task != null) {
+            if (progressPercentage >= 0 && progressPercentage <= 100) {
+                task.setProgressPercentage(progressPercentage);
+                return taskRepository.save(task);
+            }
+        }
+        return null;
+    }
+
+
+    @Transactional
+    public List<Task> getOverdueTasks() {
+        LocalDate currentDate = LocalDate.now();
+        return taskRepository.findByDueDateBeforeAndStatus(currentDate, TaskStatus.INCOMPLETE);
+    }
+
+    @Transactional
+    public List<Task> getTasksByStatus(String status) {
+        return taskRepository.findByStatus(status);
+    }
+
+    @Transactional
+    public List<Task> getCompletedTasksByDateRange(LocalDate startDate, LocalDate endDate) {
+        return taskRepository.findByStatusAndCompletedDateBetween(TaskStatus.COMPLETED, startDate, endDate);
+    }
+
+    @Transactional
+    public TaskStatistics getTaskStatistics() {
+        long totalTasks = taskRepository.count();
+        long completedTasks = taskRepository.countByStatus(TaskStatus.COMPLETED);
+        double completionPercentage = (completedTasks * 100.0) / totalTasks;
+
+        TaskStatistics statistics = new TaskStatistics();
+        statistics.setTotalTasks(totalTasks);
+        statistics.setCompletedTasks(completedTasks);
+        statistics.setCompletionPercentage(completionPercentage);
+
+        return statistics;
     }
 }

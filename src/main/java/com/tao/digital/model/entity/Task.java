@@ -1,11 +1,9 @@
-package com.tao.digital.database.model;
+package com.tao.digital.model.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDate;
 
@@ -33,5 +31,10 @@ public class Task {
     private LocalDate completedDate;
     @Column(name = "status")
     private String status;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "assigned_to")
+    private User assignedTo;
+    @Column(name = "progress_percentage")
+    private int progressPercentage;
 
 }

@@ -1,4 +1,4 @@
-package com.tao.digital.dto.response;
+package com.tao.digital.model.response;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
