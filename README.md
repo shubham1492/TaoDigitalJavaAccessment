@@ -15,6 +15,8 @@ Endpoints
 8. Get Tasks by Status
 9. Get Completed Tasks by Date Range
 10. Get Task Statistics
+11. Set Task Progress
+    
 Database Tables
 1. Task Table
 2. User Table
@@ -50,6 +52,9 @@ Description: Get a list of completed tasks within the specified date range.
 10. Get Task Statistics
 Endpoint: GET /api/tasks/statistics
 Description: Get statistics on the total number of tasks, the number of completed tasks, and the percentage of completed tasks.
+11. Set Task Progress
+Endpoint: GET /api/tasks//{taskId}/progress
+Description: Set the progress percentage of a task.
 Database Tables
 1. Task Table
 The Task table stores information about tasks in the system.
